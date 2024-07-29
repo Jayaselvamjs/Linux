@@ -1,0 +1,29 @@
+--------------------------------------------Install Eclipse IDE on Ubuntu 22.04------------------------------------------------------ 
+
+Method-1
+------installation
+sudo snap install eclipse --classic
+eclipse 
+------Uninstallation
+sudo snap refresh eclipse
+rm -r eclipse
+sudo snap remove eclipse
+
+Method-2
+
+wget https://www.eclipse.org/downloads/download.php?file=/oomph/epp/2023-12/R/eclipse-inst-jre-linux64.tar.gz&mirror_id=1273
+tar -xvf eclipse-inst-jre-linux64.tar.gz
+cd eclipse-installer/
+./eclipse-inst
+
+------------------------------------------------------------------------------------------------------------------------
+apt -y install x11-apps
+export DISPLAY='10.225.247.79:0.0'
+
+wget https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/2023-12/R/eclipse-jee-2023-12-R-linux-gtk-x86_64.tar.gz
+rm 'download.php?file=%2Ftechnology%2Fepp%2Fdownloads%2Frelease%2F2023-12%2FR%2Feclipse-jee-2023-12-R-linux-gtk-x86_64.tar.gz'
+wget https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/2023-12/R/eclipse-jee-2023-12-R-linux-gtk-x86_64.tar.gz&mirror_id=1273
+rm 'download.php?file=%2Ftechnology%2Fepp%2Fdownloads%2Frelease%2F2023-12%2FR%2Feclipse-jee-2023-12-R-linux-gtk-x86_64.tar.gz'
+apt  install firefox
+firefox
+export DISPLAY=:0

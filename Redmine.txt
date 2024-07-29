@@ -1,0 +1,108 @@
+https://www.server-world.info/en/note?os=Ubuntu_22.04&p=redmine
+
+[1] 	Install and start Apache2, refer to here.
+[2] 	Install and start SMTP server, refer to here.
+[3] 	Install PostgreSQL server, refer to here.
+[4] 	Install Ruby, refer to here.
+[5] 	Install other required packages. 
+	
+apt -y install ruby-dev postgresql-server-dev-all libxslt1-dev libxml2-dev libpq-dev libcurl4-openssl-dev zlib1g-dev apache2-dev gcc g++ make patch imagemagick 
+
+[6] 	Create a user and database for Redmine on PostgreSQL.
+
+# set any password for [password] section
+root@dlp:~# 		su - postgres
+postgres@dlp:~$ 	createuser redmine
+postgres@dlp:~$ 	createdb redmine -O redmine
+postgres@dlp:~$ 	psql -c "alter user redmine with password 'password'"
+ALTER ROLE 	
+
+[7] 	Download and install Redmine. Make sure the latest version on the site below.
+
+root@dlp:~# 	curl -O https://www.redmine.org/releases/redmine-5.0.3.tar.gz
+root@dlp:~# 	tar zxvf redmine-5.0.3.tar.gz
+root@dlp:~# 	mv redmine-5.0.3 /var/www/redmine
+root@dlp:~# 	cd /var/www/redmine
+root@dlp:/var/www/redmine# 	vi config/database.yml
+____________
+# create new
+production:
+  adapter: postgresql
+  # database name
+  database: redmine
+  host: localhost
+  # database user
+  username: redmine
+  # database user' password
+  password: password
+  encoding: utf8
+____________
+
+root@dlp:/var/www/redmine# 	vi config/configuration.yml
+____________
+# create new (SMTP settings)
+production:
+  email_delivery:
+    delivery_method: :smtp
+    smtp_settings:
+      address: "localhost"
+      port: 25
+      domain: 'dlp.srv.world'
+____________
+
+# install bundler
+root@dlp:/var/www/redmine# gem install bundler
+
+# install Gems for Redmine
+root@dlp:/var/www/redmine# bundle config set --local without 'development test mysql sqlite'
+root@dlp:/var/www/redmine# bundle install
+
+# generate keys
+root@dlp:/var/www/redmine# bundle exec rake generate_secret_token
+
+# generate tables
+root@dlp:/var/www/redmine# bundle exec rake db:migrate RAILS_ENV=production
+
+# install Passenger
+root@dlp:/var/www/redmine# gem install passenger
+
+# install modules for Apache2
+root@dlp:/var/www/redmine# passenger-install-apache2-module
+
+nano /var/lib/gems/3.0.0/gems/passenger-6.0.15/buildout/apache2/mod_passenger.so
+____________
+   <IfModule mod_passenger.c>
+     PassengerRoot /var/lib/gems/3.0.0/gems/passenger-6.0.15
+     PassengerDefaultRuby /usr/bin/ruby3.0
+   </IfModule>
+____________
+
+sudo systemctl restart apache2
+
+vi /etc/apache2/conf-available/passenger.conf 
+____________
+LoadModule passenger_module /var/lib/gems/3.0.0/gems/passenger-6.0.15/buildout/apache2/mod_passenger.so
+PassengerRoot /var/lib/gems/3.0.0/gems/passenger-6.0.15
+PassengerDefaultRuby /usr/bin/ruby3.0
+SetEnv LD_LIBRARY_PATH /usr/lib64
+
+<VirtualHost *:80>
+    ServerName redmine.srv.world
+    DocumentRoot /var/www/redmine/public
+</VirtualHost>
+
+<Directory "/var/www/redmine/public">
+    Options FollowSymLinks
+    AllowOverride All
+</Directory>
+____________
+
+root@dlp:/var/www/redmine# 	chown -R www-data. /var/www/redmine
+root@dlp:/var/www/redmine# 	a2enconf passenger
+root@dlp:/var/www/redmine# 	systemctl reload apache2 
+
+[9] 	Access to the URL you configured on Apache2, then Redmine's index site is shown like follows. Click [Sing in] link. 
+[10] 	Login with the initial username/password [admin/admin]. 
+[11] 	After initial login, changing password is required. 
+[12] 	After changing password, setting of account information is required, input them. 
+[13] 	That's OK, Create Projects and use Redmine. 

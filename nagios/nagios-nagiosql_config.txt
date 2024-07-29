@@ -1,0 +1,343 @@
+sudo apt update && sudo apt upgrade
+sudo apt install -y wget build-essential apache2 openssl perl make libgd-dev libperl-dev libssl-dev daemon autoconf libc6-dev libmcrypt-dev libnet-snmp-perl gettext unzip curl
+sudo apt-get install -y software-properties-common
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo apt-get update
+sudo apt-get install -y gcc-11 g++-11
+
+
+sudo apt install -y wget build-essential apache2 php-7.3 libapache2-mod-php7.3 openssl perl make php-7.3-gd libgd-dev libperl-dev libssl-dev daemon autoconf libc6-dev libmcrypt-dev libnet-snmp-perl gettext unzip curl
+sudo apt install -y wget build-essential apache2 php-7.3 openssl perl make php-7.3-gd libgd-dev libapache2-mod-php7.3 libperl-dev libssl-dev daemon autoconf libc6-dev libmcrypt-dev libssl-dev libnet-snmp-perl gettext unzip
+sudo apt install wget unzip curl openssl build-essential libgd-dev libssl-dev libapache2-mod-php7.3 php7.3-gd php-7.3 apache2 -y
+sudo apt install autoconf gcc make unzip libgd-dev libmcrypt-dev libssl-dev dc snmp libnet-snmp-perl gettext
+sudo apt install gnutls-bin libgnutls30 libgnutls-dane0 libgnutls28-dev libgnutlsxx28 libgnutls-openssl27 libgnutls28
+sudo cpan install DBI
+sudo apt install libtap-formatter-junit-perl libtap-harness-archive-perl libtap-parser-sourcehandler-pgtap-perl
+
+########################################################################################################################
+														NAGIOS 
+########################################################################################################################
+Download Nagios 4 Download the latest stable release of Nagios 4 from the official website
+		# cd /tmp
+		# wget https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.4.6.tar.gz	
+
+---------------------------------------------- Create a Nagios user and group -----------------------------------------
+sudo useradd nagios
+sudo groupadd nagcmd
+sudo usermod -a -G nagcmd nagios
+usermod -a -G nagcmd apache
+		
+-----------------------------------------------Extract and install Nagios -------------------------------------------------------------
+		# tar -xzf nagios-4.4.6.tar.gz
+		# cd nagios-4.4.6
+---------------------------------------------Configure and install Nagios ------------------------------------------------------
+./configure --with-httpd-conf=/etc/apache2/sites-enabled
+./configure -with-command-group=nagcmd
+sudo make all
+sudo make install
+sudo make install-init
+sudo make install-commandmode
+sudo make install-config
+sudo /usr/bin/install -c -m 644 sample-config/httpd.conf /etc/apache2/sites-enabled/nagios.conf
+cp -R contrib/eventhandlers/ /usr/local/nagios/libexec/
+chown -R nagios:nagios /usr/local/nagios/libexec/eventhandlers
+
+---------------------------------------------------- Configure Apache --------------------------------------------------
+sudo a2enmod rewrite
+sudo a2enmod cgi
+sudo systemctl restart apache2
+
+--------------------------------------------------Install the Nagios plugins-------------------------------------------
+cd 
+wget https://nagios-plugins.org/download/nagios-plugins-2.3.3.tar.gz
+tar -xzf nagios-plugins-2.3.3.tar.gz
+cd nagios-plugins-2.3.3
+./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl
+./tools/setup
+./configure
+sudo make
+sudo make install
+service nrpe start
+	
+-----------------------------------------------  NAGIOS-NRPE-SERVICE  -----------------------------------------------------
+cd ~
+curl -L -O https://github.com/NagiosEnterprises/nrpe/releases/download/nrpe-3.2.1/nrpe-3.2.1.tar.gz
+tar zxf nrpe-3.2.1.tar.gz
+cd nrpe-3.2.1
+./configure
+make check_nrpe
+sudo make install-plugin
+		OR 	
+apt-get install nagios-nrpe-server
+service nagios-nrpe-server status
+		
+------------------------------------------Verify the Nagios installation-------------------------------------------------
+/usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+------------------------------------------Start Nagios and Apache services--------------------------------------------
+sudo systemctl enable nagios.service
+service nagios restart && service apache2 restart 
+service nagios status && service apache2 status
+
+------------------------------Create a new user account for Nagios using the htpasswd-----------------------------------
+sudo htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin
+
+-------------------------------------------------Configuring Nagios----------------------------------------------------
+
+sudo nano /usr/local/nagios/etc/nagios.cfg
+
+...
+#cfg_dir=/usr/local/nagios/etc/servers				cfg_dir=/usr/local/nagios/etc/servers
+...
+
+sudo mkdir /usr/local/nagios/etc/servers
+sudo nano /usr/local/nagios/etc/objects/contacts.cfg
+	
+...
+define contact{
+        contact_name                    nagiosadmin             ; Short name of user
+        use                             generic-contact         ; Inherit default values from generic-contact template (defined above)
+        alias                           Nagios Admin            ; Full name of user
+        email                           your_email@your_domain.com        ; <<***** CHANGE THIS TO YOUR EMAIL ADDRESS ******
+...
+
+--------------------------------------------Accessing the Nagios Web Interface------------------------------------------------------
+
+http://nagios_server_public_ip/nagios
+
+
+################################################## PNP4NAGIOS Installation ###########################################
+apt-get install rrdtool
+sudo apt-get install librrds-perl
+
+
+cd ..
+tar -zxvf $NAGIOSPNP
+cd pnp4nagios-0.6.25
+./configure
+make all
+make fullinstall
+make install-webconf
+make install-config
+make install-init
+sudo systemctl enable npcd
+sudo systemctl start npcd
+systemctl reload apache2.service
+mv  /usr/local/pnp4nagios/share/install.php /usr/local/pnp4nagios/share/install.php.ORI
+patch -u /usr/local/nagios/etc/nagios.cfg $PATCH/nagios.patch
+patch -u /usr/local/nagios/etc/objects/commands.cfg $PATCH/commands.patch
+patch -u /usr/local/nagios/etc/objects/templates.cfg $PATCH/templates.patch
+service npcd restart && service nagios restart
+cp contrib/ssi/status-header.ssi /usr/local/nagios/share/ssi/
+service npcd restart && service nagios restart
+
+###################################### Livestatus Installation ########################################################
+sudo apt-get update
+sudo apt-get install -y libboost-all-dev g++ make
+
+
+
+cd ..
+tar -zxvf $MKLIVE
+cd mk-livestatus-1.2.6
+./configure --with-nagios4
+make && make install
+cat <<EOT >> /usr/local/nagios/etc/nagios.cfg
+broker_module=/usr/local/lib/mk-livestatus/livestatus.o /usr/local/nagios/var/rw/live
+EOT
+ 
+#echo 'GET hosts' | unixcat /usr/lib/nagios/mk-livestatus/live
+
+service npcd restart && service apache2 restart && service nagios restart && service nagios-nrpe-server restart
+
+service npcd status && service apache2 status && service nagios status && service nagios-nrpe-server status
+
+########################################################################################################################
+													  NAGIOSQL
+########################################################################################################################
+
+sudo apt-get install libssh2-1 libssh2-1-dev
+sudo apt install php-pear php7.3-ssh2
+sudo apt update
+sudo apt install software-properties-common
+sudo add-apt-repository ppa:ondrej/php
+sudo apt update
+sudo apt install php7.3 php7.3-mbstring php7.3-xml php7.3-pdo php7.3-gd php7.3-mysql php7.3-json
+
+sudo nano /etc/php/7.3/apache2/php.ini
+________
+		memory_limit = 128M
+		max_execution_time = 120
+		upload_max_filesize = 20M
+		post_max_size = 20M
+		date.timezone = 'Asia/Kolkata'
+		short_open_tag = On
+________
+
+cd /usr/local/
+wget http://sourceforge.net/projects/nagiosql/files/nagiosql/NagiosQL%203.2.0/nagiosql_320.tar.gz
+tar xzf nagiosql_320.tar.gz
+chown -R www-data:www-data .
+chmod -R 775 .
+	
+service apache2 restart
+
+http://ip.address/nagiosql  
+
+########################################################################################################################
+
+#Install Prerequisites
+yum -y install mariadb-server mariadb php-mysql php-pear php-devel libssh2 libssh2-devel
+pecl install -f ssh2
+echo extension=ssh2.so > /etc/php.d/ssh2.ini
+
+#Create folder for NAGIOS host and service configuration files
+mkdir /usr/local/nagios/etc/nagiosql 
+mkdir /usr/local/nagios/etc/nagiosql/hosts 
+mkdir /usr/local/nagios/etc/nagiosql/services 
+mkdir /usr/local/nagios/etc/nagiosql/backup 
+mkdir /usr/local/nagios/etc/nagiosql/backup/hosts 
+mkdir /usr/local/nagios/etc/nagiosql/backup/services
+#Set permission for configuration folder
+chown -R apache.nagios /usr/local/nagios/etc/nagiosql
+
+#Provide access to apache for nagios configuration files.
+chown apache.nagios /usr/local/nagios/etc/nagios.cfg
+chown apache.nagios /usr/local/nagios/etc/cgi.cfg
+chown apache.nagios /usr/local/nagios/var/rw/nagios.cmd
+
+chmod 640 /usr/local/nagios/etc/nagios.cfg 
+chmod 640 /usr/local/nagios/etc/cgi.cfg 
+chmod 660 /usr/local/nagios/var/rw/nagios.cmd 
+
+#Create folder for NAGIOSQL web site
+#mkdir /usr/local/nagiosql 
+#chown apache /usr/local/nagiosql
+
+systemctl start mariadb
+systemctl enable mariadb
+mysql -u root
+SET PASSWORD FOR 'root'@'localhost' = PASSWORD('root@123');
+
+#Install NagiosQL
+cd /usr/local/
+wget http://ncu.dl.sourceforge.net/project/nagiosql/nagiosql/NagiosQL%203.2.0/nagiosql_320.tar.gz
+tar xzf nagiosql_320.tar.gz
+mv nagiosql32 nagiosql
+chown -R apache:apache nagiosql
+chmod -R 775 nagiosql
+
+touch /etc/apache2/conf.d/nagiosql.conf
+nano /etc/apache2/conf.d/nagiosql.conf
+
+Alias /nagiosql "/usr/local/nagiosql" 
+<Directory "/usr/local/nagiosql"> 
+     Options None  
+     AllowOverride None 
+     Order allow,deny 
+     Allow from all
+     Require all granted 
+     #  Order deny,allow 
+     #  Deny from all 
+     #  Allow from 127.0.0.1 
+     #  AuthName "NagiosQL Access" 
+     #  AuthType Basic 
+     #  AuthUserFile /etc/nagiosql/auth/nagiosql.users 
+     #  Require valid-user 
+</Directory> 
+
+vi /etc/php.ini
+Add below line
+date.timezone = "Asia/Kolkata"
+
+vi /etc/sysconfig/selinux
+SELINUX=disabled
+
+________
+
+Database Type: mysql
+Database Server: localhost
+Local hostname or IP address: localhost
+Database Server Port: 3306
+Database name: db_nagiosql_v32
+NagiosQL DB User: nagiosql_user
+NagiosQL DB Password: 
+Administrative Database User: root
+Administrative Database Password: root123
+
+Initial NagiosQL User: admin
+Initial NagiosQL Password: admin@123
+
+NagiosQL Config paths? /usr/local/nagios/etc/nagiosql
+Nagios config path: /usr/local/nagios/etc/
+
+Nagios command file: /usr/local/nagios/var/rw/nagios.cmd
+Nagios binary file: /usr/local/nagios/bin/nagios
+Nagios process file: /usr/local/nagios/var/nagios.lock
+
+cd /usr/local/nagiosql
+rm -rf install
+
+#must
+
+chmod 777 /usr/local/nagios/bin/nagios
+chown apache:nagios /usr/local/nagios/etc/resource.cfg
+
+vi /usr/local/nagios/etc/nagios.cfg
+# everything and add the below entry
+
+cfg_dir=/usr/local/nagios/etc/nagiosql
+
+_____________________________________________________________________________________________________________________
+----------------------------------------------------ubuntu--------------------------------------------------------
+apt-get install nagios-nrpe-server
+rm /etc/nagios/nrpe.cfg
+mv nrpe.cfg /etc/nagios/
+chmod 755 /etc/nagios/nrpe.cfg 
+chown root:root /etc/nagios/nrpe.cfg
+mv check_mem /usr/lib/nagios/plugins/
+chmod 755 /usr/lib/nagios/plugins/check_mem
+chown root:root /usr/lib/nagios/plugins/check_mem
+
+-----------------------------------------------------centos-------------------------------------------------------      
+https://kifarunix.com/how-to-install-nagios-plugins-and-nrpe-agents-on-centos-7-rhel-7-fedora-29/?expand_article=1
+https://access.redhat.com/documentation/en-us/red_hat_ceph_storage/3/html/monitoring_ceph_for_red_hat_enterprise_linux_with_nagios/nagios-nrpe-installation-ceph-nagios
+
+
+sudo yum install epel-release
+sudo yum install nrpe
+sudo yum install nagios-plugins
+sudo nano /etc/nagios/nrpe.cfg
+sudo systemctl enable nrpe
+sudo systemctl start nrpe
+sudo firewall-cmd --zone=public --add-port=5666/tcp --permanent
+sudo firewall-cmd --reload
+/usr/lib64/nagios/plugins/check_nrpe -H <NRPE-CLIENT-IP>
+define host {
+    use             linux-server
+    host_name       nrpe-client
+    alias           NRPE Client
+    address         192.168.1.100
+}
+define service {
+    use                     generic-service
+    host_name               nrpe-client
+    service_description     Check NRPE
+    check_command           check_nrpe! -H $HOSTADDRESS$
+}
+sudo systemctl restart nagios
+------------------------------------------------------centos--------------------------------------------------------
+													remove cmd
+sudo systemctl stop nrpe
+sudo yum remove nrpe
+sudo yum remove nrpe --configfiles
+sudo yum clean all
+---------------------------------------------------------------------------------------------------------------------
+command[check_users]=/usr/lib64/nagios/plugins/check_users -w 5 -c 10
+command[check_load]=/usr/lib64/nagios/plugins/check_load -r -w 8.0,7.5,7.0 -c 11.0,10.0,9.0
+command[check_disk]=/usr/lib64/nagios/plugins/check_disk -w 15% -c 10% /
+command[check_mem]= /usr/lib64/nagios/plugins/check_mem -w 80 -c 90 -W 40 -C 60
+command[check_total_procs]=/usr/lib64/nagios/plugins/check_procs -w 300 -c 400
+command[check_swap]=/usr/lib64/nagios/plugins/check_swap -w 10 -c 5
+
+/usr/lib/nagios/plugins/check_nrpe -H $HOSTADDRESS$ -c check_mem

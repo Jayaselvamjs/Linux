@@ -1,0 +1,20 @@
+RHEL - Red H :
+
+Un-register the system :
+
+sudo subscription-manager remove --all
+sudo subscription-manager unregister
+sudo subscription-manager clean
+
+Re-register the system :
+
+sudo subscription-manager register
+sudo subscription-manager refresh
+
+Search for the Pool ID :
+
+sudo subscription-manager list --available
+
+Attach the subscription :
+
+sudo subscription-manager attach --pool=<Pool-ID>

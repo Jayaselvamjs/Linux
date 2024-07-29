@@ -1,0 +1,912 @@
+NagiOS Core Features
+	-> Nagios core is on open source system and networking monitoring application.
+	-> Monitoring of Network Services Example: SMTP, POP3, IMAP,PING, HTTP, NNTP, DNS and etc..
+	-> Monitoring of host resources ( Processor load, Disk Usage and Memory Usage)
+	-> Simple and fast web interface for monitoring.
+	-> Agent based (NSClient++ & NRPE) and agentless (SNMP) monitoring support
+
+System Requirements
+	-> A Web server (Apache)
+	-> RAM 2GB (Min)
+	-> CPU 2 Cores (min)
+	-> Disk Space 10GB (min)
+	-> Linux Operation system (RHEL6.x/7.x Or Centos6.x/7.x)
+
+Nagios Core Installation Steps
+	-> Disable Firewall, IPtables and SELinux
+	-> Install required dependent packages ( C++, Perl, SNMP, OpenSSL, http and php)
+	-> Download source file and Extract
+	-> Create User and group for Nagios (Nagios & nagcmd)
+	-> Compile and install Nagios core source code 
+	-> Generate nagiosadmin password
+	-> start http and Nagios services
+	-> install and configure Nagios Plugins
+	
+# cat /etc/redhat-release
+# systemctl stop firewalld
+# systemctl disable firewalld
+# cat /etc/selinux/config | grep SELINUX=e
+# sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+# cat /etc/selinux/config | grep selinux=da
+# sestatus
+# yum install -y wget httpd php gcc glibc glibc-common gd gd-devel make net-snmp perl perl-devel openssl
+# reboot
+# sestatus
+# systemctl status firewalld
+# wget https://assats.nagios.com/downloads/nagioscore/releases/nagios-4.4.3.tar.gz
+# ls
+# tar -xvf nagios-4.4.3.tar.gz
+# useradd nagios
+# groupadd nagcmd
+# usermod -a -G nagcmd nagios
+# cd nagios-4.4.3/
+# ls
+# ./configure --with-command-group=nagcmd
+# make all
+# make install
+# make install-init
+# make install-commandmode
+# make install-config
+# make install-webconf
+# make install-exfoliation
+# make install-classicui
+# cp -rvf contrib/eventhandlers/ /user/local/nagios/libexec/
+# chmod -R nagios:nagcmd /usr/local/nagios/libexec/eventhandlers/
+# htpasswd -c /user/local/nagios/etc/htpasswd.users nagiosadmin 
+New password:
+Re-type new password:
+Adding password for user nagiosadmin
+# systemctl start httpd 
+# systemctl enable httpd
+# systemctl start nagios
+# systemctl enable nagios
+# systemctl status nagios
+# syatemctl status httpd
+go to brower http://ip.address & http://ip.addr/nagios
+# cd /user/local/nagios/libexec/
+# ls
+# cd
+# wget https://nagios-plugins.org/download/nagios-plugins-2.2.1.tar.gz
+# tar -xvf nagios-plugins-@.2.1.tar.gz
+#  cd nagios-plugins-2.2.1/
+# ls
+# ./configure --with-nagios-user=nagios --with-nagios-group=nagcmd
+# make
+# make install
+# cd /usr/local/nagios/libexec/
+# ls
+______________________________________________________________________________________________________________________
+======================================================================================================================
+
+1.Install Prerequisites
+2.Download Nagios Core and Nagios Plugins
+3.Install Nagios Core
+4.Install Nagios Plugins
+5.Configure Nagios
+6.Verify Nagios Configuration
+7.Install and Configure Apache
+8.Access the Nagios Web Interface
+9.Add Password for Nagios Web Interface (Optional)
+
+
+Step 1: Update the system to ensure that you have the latest security updates and software packages.
+		# sudo apt update && sudo apt upgrade
+
+Step 2: Install necessary packages that are required to build and install Nagios 4.
+		# sudo apt install -y wget build-essential apache2 php openssl perl make php-gd libgd-dev libapache2-mod-php libperl-dev libssl-dev daemon autoconf libc6-dev libmcrypt-dev libssl-dev libnet-snmp-perl gettext unzip
+
+Step 3: Download Nagios 4 Download the latest stable release of Nagios 4 from the official website
+		# cd /tmp
+		# wget https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.4.6.tar.gz	
+
+Step 4: Create a Nagios user and group Create a Nagios user and group
+		# sudo useradd nagios
+		# sudo groupadd nagcmd
+		# sudo usermod -a -G nagcmd nagios
+		
+Step 5: Extract and install Nagios 4 Extract the Nagios 4 archive
+		# tar -xzf nagios-4.4.6.tar.gz
+		# cd nagios-4.4.6
+	Configure and install Nagios 4 by running the following commands:
+		# sudo ./configure --with-httpd-conf=/etc/apache2/sites-enabled
+		# sudo make all
+		# sudo make install
+		# sudo make install-init
+		# sudo make install-commandmode
+		# sudo make install-config
+		# sudo /usr/bin/install -c -m 644 sample-config/httpd.conf /etc/apache2/sites-enabled/nagios.conf
+
+Step 6: Configure Apache Configure Apache
+		# sudo a2enmod rewrite
+		# sudo a2enmod cgi
+		# sudo systemctl restart apache2
+
+Step 7: Install the Nagios plugins Install the Nagios plugins
+		# cd /tmp
+		# wget https://nagios-plugins.org/download/nagios-plugins-2.3.3.tar.gz
+		# tar -xzf nagios-plugins-2.3.3.tar.gz
+		# cd nagios-plugins-2.3.3
+		# sudo ./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl
+		# sudo make
+		# sudo make install
+
+Step 8: Verify the Nagios installation Verify the Nagios installation
+		# sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+	If everything is working correctly, you should see the message “Total Warnings: 0” and “Total Errors: 0”.	
+		
+Step 9: Start Nagios and Apache services Start the Nagios and Apache services
+		# sudo systemctl enable --now nagios.service
+		# sudo systemctl restart apache2.service
+
+	Now, Nagios should be up and running on your Ubuntu 20.04 server.
+	You can access the Nagios web interface by visiting your server’s IP address or hostname in a web browser
+
+To add a password for the Nagios web interface, you can follow these steps:
+
+Step 1: Create a Nagios user Create a new user account for Nagios using the htpasswd utility.
+		This utility is included with the Apache web server and allows you to create a file with usernames and passwords.
+	Run the following command to create a new user named “nagiosuser”:
+		# sudo htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin
+		
+	Now Type useranme nagiosadmin and password what you type
+	
+Optional if you Recive any Error
+
+Step 2: Configure Apache to use the htpasswd file Next, configure Apache to use the htpasswd file you just created to 
+		authenticate users who access the Nagios web interface.
+Edit the Nagios Apache configuration file by running the following command:
+		# sudo nano /etc/apache2/sites-enabled/nagios.conf
+	Locate the following lines in the configuration file:
+		# AuthUserFile /dev/null
+		# AuthGroupFile /dev/null
+		# AuthType basic
+	Replace these lines with the following:
+		# AuthUserFile /usr/local/nagios/etc/htpasswd.users
+		# AuthGroupFile /dev/null
+		# AuthType basic
+		# AuthName "Restricted Access"
+	Save and close the file.
+	
+Step 3: Restart Apache Restart the Apache web server to apply the changes by running
+		# sudo systemctl restart apache2.service
+	Now, when you access the Nagios web interface, you will be prompted to enter a username and password.
+	Use the credentials you created in step 1 to log in.	
+	
+	Now you Check Version of Nagios4
+		#  nagios4 --version
+		
+______________________________________________________________________________________________________________________
+======================================================================================================================
+
+1. Install and Configure Nagios Core
+	1.Update the system packages.
+		$ sudo apt update
+
+	2.Install all the required packages.
+		$ sudo apt install wget unzip curl openssl build-essential libgd-dev libssl-dev libapache2-mod-php php-gd php apache2 -y
+
+	3.Download Nagios Core Setup files. To download the latest version, visit the official releases site.
+		$ wget https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.4.6.tar.gz
+
+	4.Extract the downloaded files.
+		$ sudo tar -zxvf nagios-4.4.6.tar.gz
+
+	5.Navigate to the setup directory.
+		$ cd nagios-4.4.6
+
+    6.Run the Nagios Core configure script.
+		$ sudo ./configure
+
+    7.Compile the main program and CGIs.
+		$ sudo make all
+
+    8.Make and install group and user.
+		$ sudo make install-groups-users
+
+    9.Add www-data directories user to the nagios group.
+		$ sudo usermod -a -G nagios www-data
+
+    10.Install Nagios.
+		$ sudo make install
+
+    11.Initialize all the installation configuration scripts.
+		$ sudo make install-init
+
+    12.Install and configure permissions on the configs' directory.
+		$ sudo make install-commandmode
+
+    13.Install sample config files.
+		$ sudo make install-config
+
+    14.Install apache files.
+    $ sudo make install-webconf
+
+    15.Enable apache rewrite mode.
+    $ sudo a2enmod rewrite
+
+	16.Enable CGI config.
+		$ sudo a2enmod cgi
+
+    17.Restart the Apache service.
+		$ sudo systemctl restart apache2
+
+    18.Create a user and set the password when prompted.
+		$ sudo htpasswd -c /usr/local/nagios/etc/htpasswd.users admin
+
+2. Install Nagios Plugins
+    1.Download the Nagios Core plugin. To download the latest plugins, visit the plugins download page.
+		$ cd ~/
+		$ wget https://nagios-plugins.org/download/nagios-plugins-2.3.3.tar.gz
+
+    2.Extract the downloaded plugin.
+		$ sudo tar -zxvf nagios-plugins-2.3.3.tar.gz
+
+    3.Navigate to the plugins' directory.
+		$ cd nagios-plugins-2.3.3/
+
+    4.Run the plugin configure script.
+	    $ sudo ./configure --with-nagios-user=nagios --with-nagios-group=nagios
+
+    5.Compile Nagios Core plugins.
+	    $ sudo make
+
+    6.Install the plugins.
+	    $ sudo make install
+
+3. Verify Nagios Configuration
+    1.Verify the Nagios Core configuration.
+	    $ sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+    2.Start the Nagios service.
+	    $ sudo systemctl start nagios
+
+    3.Enable Nagios service to run at system startup.
+	    $ sudo systemctl enable nagios
+
+4. Access Nagios Web Interface
+	Open your web browser and access Nagios web interface via the URL http://ServerIP/nagios. For example:
+
+		http://192.0.2.10/nagios
+
+	You have successfully installed Nagios Core on your server. To log in, use admin as your username and
+	the password you set during the user account creation step as your password. You can now access the dashboard and
+	begin configuring Nagios.
+
+5. Add Remote Hosts
+	Now that your Nagios server is configured, it's time to configure a remote host to monitor.
+	To get started, connect as root over SSH to the host you want to monitor. 
+
+Install Prerequisites
+	To monitor hosts, we need to add them to Nagios. 
+	By default, Nagios only monitors localhost (the server it's running on). 
+	We're going to add hosts that are part of our network to gain even more control. 
+	You will need to use the following instructions on all hosts that you want to monitor.
+
+	First, install nagios-plugins and nagios-nrpe-server:
+		service nagios restart && service apache2 restart
+
+Configure NRPE
+	Next, open the /etc/nagios/nrpe.cfg file. 
+	Replace the value of allowed_hosts with 127.0.0.1,0.0.0.0 replacing the second IP with the IP address of the Nagios server.
+		We will now open the file /etc/nagios/nrpe.cfg and replace a couple of values.
+			> Replace the value of server_address to the private IP address of the host.
+			> Set allowed_hosts to the private IP address of your Nagios server.
+			> Execute df -h /, copy the output, and put that as the value of command. It indicates your root file system.
+		Save the file when you are finished.
+	Now restart NRPE:
+		# service nagios-nrpe-server restart
+
+Add the Host to Nagios
+	Now that we've configured the host we're going to monitor, we need to switch back to our Nagios server and
+	add the host to it. Open the following file with your favorite editor:
+		# nano /usr/local/nagios/etc/servers/host.cfg
+
+	Use the following block as a template. Replace host with an appropriate name for your remote host, 
+	and update the host_name, alias, and address values accordingly.
+
+define host {
+
+        use                             linux-server
+
+        host_name                       yourhost
+
+        alias                           My first Apache server
+
+        address                         1.2.3.4
+
+        max_check_attempts              5
+
+        check_period                    24x7
+
+        notification_interval           30
+
+        notification_period             24x7
+
+}
+
+	This will allow you to simply monitor whether the server is up or down. Now reload Nagios:
+		# service nagios reload
+
+	Congratulations, you have completed a very basic Nagios setup for monitoring your servers. 
+	Now you can log into the Nagios web panel to view the status of your servers.
+	
+______________________________________________________________________________________________________________________
+======================================================================================================================
+										chat-GPT
+	1. Install Prerequisites:	
+sudo apt-get update	
+sudo apt-get install -y autoconf gcc libc6 make wget unzip apache2 php libapache2-mod-php7.4 libgd-dev	
+
+	2. Download and Extract Nagios:
+wget https://assets.nagios.com/downloads/nagioscore/releases/nagios-x.x.x.tar.gz
+tar -xzf nagios-x.x.x.tar.gz
+
+	3. Compile and Install Nagios:
+cd nagios-x.x.x
+./configure --with-httpd-conf=/etc/apache2/sites-enabled
+make all
+sudo make install
+sudo make install-init
+sudo make install-config
+sudo make install-commandmode
+sudo make install-webconf
+
+	4. Create a Nagios User:
+sudo htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin
+
+	5. Start Apache and Nagios:
+sudo systemctl enable apache2
+sudo systemctl enable nagios
+sudo systemctl start apache2
+sudo systemctl start nagios
+
+	6. Access Nagios Web Interface:
+		Open a web browser and navigate to http://your_server_ip/nagios.
+		Log in with the username nagiosadmin and the password you set earlier.
+
+	7. Configure Monitoring:
+		Edit the Nagios configuration files in /usr/local/nagios/etc/ 
+		to define hosts, services, and contacts you want to monitor. 	
+		Refer to Nagios documentation for detailed configuration options.
+
+	8. Restart Nagios:	
+sudo systemctl restart nagios
+
+______________________________________________________________________________________________________________________
+======================================================================================================================
+												Digital ocean
+Step 1 — Installing Nagios 4
+
+# sudo apt update
+# sudo apt install autoconf gcc make unzip libgd-dev libmcrypt-dev libssl-dev dc snmp libnet-snmp-perl gettext
+# cd ~
+# curl -L -O https://github.com/NagiosEnterprises/nagioscore/archive/nagios-4.4.4.tar.gz
+# tar zxf nagios-4.4.4.tar.gz
+# cd nagioscore-nagios-4.4.4
+# ./configure --with-httpd-conf=/etc/apache2/sites-enabled
+
+You’ll see the following output from the configure command:
+
+Output
+*** Configuration summary for nagios 4.4.4 2019-07-29 ***:
+
+ General Options:
+ -------------------------
+        Nagios executable:  nagios
+        Nagios user/group:  nagios,nagios
+       Command user/group:  nagios,nagios
+             Event Broker:  yes
+        Install ${prefix}:  /usr/local/nagios
+    Install ${includedir}:  /usr/local/nagios/include/nagios
+                Lock file:  /run/nagios.lock
+   Check result directory:  /usr/local/nagios/var/spool/checkresults
+           Init directory:  /lib/systemd/system
+  Apache conf.d directory:  /etc/apache2/sites-enabled
+             Mail program:  /bin/mail
+                  Host OS:  linux-gnu
+          IOBroker Method:  epoll
+
+ Web Interface Options:
+ ------------------------
+                 HTML URL:  http://localhost/nagios/
+                  CGI URL:  http://localhost/nagios/cgi-bin/
+ Traceroute (used by WAP):
+
+
+Review the options above for accuracy.  If they look okay,
+type 'make all' to compile the main program and CGIs.
+
+# make all
+# sudo make install-groups-users
+# sudo make install
+# sudo make install-daemoninit
+# sudo make install-commandmode
+# sudo make install-config
+# sudo make install-webconf
+# sudo a2enmod rewrite
+# sudo a2enmod cgi
+# sudo usermod -a -G nagios www-data
+# sudo htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin
+# sudo systemctl restart apache2
+
+Step 2 — Installing the Nagios Plugins
+
+# cd ~
+# curl -L -O https://nagios-plugins.org/download/nagios-plugins-2.2.1.tar.gz
+# tar zxf nagios-plugins-2.2.1.tar.gz
+# cd nagios-plugins-2.2.1
+# ./configure
+# make
+# sudo make install
+
+Step 3 — Installing the check_nrpe Plugin
+
+# cd ~
+# curl -L -O https://github.com/NagiosEnterprises/nrpe/releases/download/nrpe-3.2.1/nrpe-3.2.1.tar.gz
+# tar zxf nrpe-3.2.1.tar.gz
+# cd nrpe-3.2.1
+# ./configure
+# make check_nrpe
+# sudo make install-plugin
+
+Step 4 — Configuring Nagios
+
+# sudo nano /usr/local/nagios/etc/nagios.cfg
+
+...
+#cfg_dir=/usr/local/nagios/etc/servers				cfg_dir=/usr/local/nagios/etc/servers
+...
+
+# sudo mkdir /usr/local/nagios/etc/servers
+# sudo nano /usr/local/nagios/etc/objects/contacts.cfg
+
+	/usr/local/nagios/etc/objects/contacts.cfg
+
+...
+define contact{
+        contact_name                    nagiosadmin             ; Short name of user
+        use                             generic-contact         ; Inherit default values from generic-contact template (defined above)
+        alias                           Nagios Admin            ; Full name of user
+        email                           your_email@your_domain.com        ; <<***** CHANGE THIS TO YOUR EMAIL ADDRESS ******
+...
+
+# sudo nano /usr/local/nagios/etc/objects/commands.cfg
+
+	/usr/local/nagios/etc/objects/commands.cfg
+Add
+...
+define command{
+        command_name check_nrpe
+        command_line $USER1$/check_nrpe -H $HOSTADDRESS$ -c $ARG1$
+}
+
+# sudo systemctl start nagios
+
+Step 5 — Accessing the Nagios Web Interface
+
+http://nagios_server_public_ip/nagios
+
+Step 6 — Installing Nagios Plugins and NRPE Daemon on a Host
+
+# ssh sammy@your_monitored_server_ip
+# sudo useradd nagios
+# sudo apt update
+# sudo apt install autoconf gcc libmcrypt-dev make libssl-dev wget dc build-essential gettext
+# cd ~
+# curl -L -O https://nagios-plugins.org/download/nagios-plugins-2.2.1.tar.gz
+# tar zxf nagios-plugins-2.2.1.tar.gz
+# cd nagios-plugins-2.2.1
+# ./configure
+# make
+# sudo make install
+# cd ~
+# curl -L -O https://github.com/NagiosEnterprises/nrpe/releases/download/nrpe-3.2.1/nrpe-3.2.1.tar.gz
+# tar zxf nrpe-3.2.1.tar.gz
+# cd nrpe-3.2.1
+# ./configure
+# make nrpe
+# sudo make install-daemon
+# sudo make install-config
+# sudo make install-init
+# df -h /
+
+	Output
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda1        25G  1.4G   23G   6% /
+
+# sudo nano /usr/local/nagios/etc/nrpe.cfg
+
+	/usr/local/nagios/etc/nrpe.cfg
+
+...
+server_address=second_ubuntu_server_private_ip
+...
+allowed_hosts=127.0.0.1,::1,your_nagios_server_private_ip
+...
+command[check_vda1]=/usr/local/nagios/libexec/check_disk -w 20% -c 10% -p /dev/vda1
+...
+
+# sudo systemctl start nrpe.service
+# sudo systemctl status nrpe.service
+	Output
+...
+Aug 01 06:28:31 client systemd[1]: Started Nagios Remote Plugin Executor.
+Aug 01 06:28:31 client nrpe[8021]: Starting up daemon
+Aug 01 06:28:31 client nrpe[8021]: Server listening on 0.0.0.0 port 5666.
+Aug 01 06:28:31 client nrpe[8021]: Server listening on :: port 5666.
+Aug 01 06:28:31 client nrpe[8021]: Listening for connections on port 5666
+Aug 01 06:28:31 client nrpe[8021]: Allowing connections from: 127.0.0.1,::1,165.22.212.38
+
+# sudo ufw allow 5666/tcp
+# /usr/local/nagios/libexec/check_nrpe -H second_ubuntu_server_ip
+	Output
+NRPE v3.2.1
+
+Step 7 — Monitoring Hosts with Nagios
+
+# sudo nano /usr/local/nagios/etc/servers/your_monitored_server_host_name.cfg
+	
+	/usr/local/nagios/etc/servers/your_monitored_server_host_name.cfg
+
+define host {
+        use                             linux-server
+        host_name                       your_monitored_server_host_name
+        alias                           My client server
+        address                         your_monitored_server_private_ip
+        max_check_attempts              5
+        check_period                    24x7
+        notification_interval           30
+        notification_period             24x7
+}
+
+First, add this block to monitor load average:
+	
+	/usr/local/nagios/etc/servers/your_monitored_server_host_name.cfg
+
+define service {
+        use                             generic-service
+        host_name                       your_monitored_server_host_name
+        service_description             Load average
+        check_command                   check_nrpe!check_load
+}
+
+Next, add this block to monitor disk usage:
+	/usr/local/nagios/etc/servers/your_monitored_server_host_name.cfg
+
+define service {
+        use                             generic-service
+        host_name                       your_monitored_server_host_name
+        service_description             /dev/vda1 free space
+        check_command                   check_nrpe!check_vda1
+}
+
+# sudo systemctl restart nagios
+________________________________________________________________________________________________________________________
+========================================================================================================================
+											PNPNAGIOS 
+DOWNLOQD LINK https://www.php.net/releases/index.php
+									RHEL | CentOS | Oracle Linux
+Prerequisites
+
+Perform these steps to install the pre-requisite packages.
+
+===== RHEL 5 | CentOS 5 | Oracle Linux 5 =====
+yum install -y rrdtool perl-rrdtool php-gd
+cpan -f -i Time::HiRes
+
+ If CPAN has not been run before you will need to answer a series of questions, usually accepting the default choice using Enter will suffice.
+
+===== RHEL 6/7 | CentOS 6/7 | Oracle Linux 6/7 =====
+yum install -y rrdtool perl-rrdtool perl-Time-HiRes php-gd
+
+===== RHEL 8 =====
+dnf install -y rrdtool perl-rrdtool perl-Time-HiRes php-gd php-xml
+dnf update -y
+ 
+Downloading the Source
+
+cd /tmp
+wget -O pnp4nagios.tar.gz https://github.com/lingej/pnp4nagios/archive/0.6.26.tar.gz
+tar xzf pnp4nagios.tar.gz
+ 
+Compile & Install
+
+cd pnp4nagios-0.6.26
+./configure
+make all
+make install
+make install-webconf
+make install-config
+make install-init
+ 
+Configure & Start Service / Daemon
+
+The npcd service needs to be configured to start on boot, it also needs to be started. The Apache httpd service is also restarted at this point.
+
+===== RHEL 5/6 | CentOS 5/6 | Oracle Linux 5/6 =====
+chkconfig --add npcd
+service npcd start
+service httpd restart
+
+===== RHEL 7/8 | CentOS 7 | Oracle Linux 7 =====
+systemctl daemon-reload
+systemctl enable npcd.service
+systemctl start npcd.service
+systemctl restart httpd.service
+
+													Ubuntu
+Prerequisites
+
+Perform these steps to install the pre-requisite packages.
+
+===== Ubuntu 14.x / 15.x =====
+sudo apt-get update
+sudo apt-get install -y rrdtool librrd-simple-perl php-gd
+
+===== Ubuntu 16.x / 17.x / 18.x =====
+sudo apt-get update
+sudo apt-get install -y rrdtool librrd-simple-perl php-gd php-xml
+perl -MCPAN -e 'install RRD::Simple'
+sudo apt install librrd-simple-perl
+sudo apt-get install -y librrds-perl
+ 
+Downloading the Source
+
+cd /tmp
+wget -O pnp4nagios.tar.gz https://github.com/lingej/pnp4nagios/archive/0.6.26.tar.gz
+tar xzf pnp4nagios.tar.gz
+
+ 
+Compile & Install
+
+cd pnp4nagios-0.6.26
+sudo ./configure --with-httpd-conf=/etc/apache2/sites-enabled
+sudo make all
+sudo make install
+sudo make install-webconf
+sudo make install-config
+sudo make install-init
+
+ 
+Configure & Start Service / Daemon
+
+The npcd service needs to be configured to start on boot, it also needs to be started. The apache2 service is also restarted at this point.
+
+===== Ubuntu 14.x =====
+sudo update-rc.d npcd defaults
+sudo service npcd start
+sudo service apache2 restart
+
+===== Ubuntu 15.x / 16.x / 17.x / 18.x =====
+sudo systemctl daemon-reload
+sudo systemctl enable npcd.service
+sudo systemctl start npcd.service
+sudo systemctl restart apache2.service
+
+                                     Installing and Configuring PNP4Nagios
+	Step 1: installing and configuring PNP4Nagios
+# yum install rrdtool
+# yum install ruby xorg-x11-fonts-Type1 php-xml
+
+	Step 2: Downloading PNP4Nagios
+# cd /tmp/
+# wget https://sourceforge.net/projects/pnp4nagios/files/PNP-0.6/pnp4nagios-0.6.25.tar.gz
+# tar -xvf pnp4nagios-0.6.25.tar.gz
+# cd pnp4nagios-0.6.25
+# ./configure --with-rrdtool=/usr/bin/rrdtool --with-nagios-user=nagios --with-nagios-group=nagcmd
+# make all
+# make install-webconf
+# make install-config
+# make install-init
+# make fullinstall
+
+	Step 3: Start and Enable web & nagios service
+# systemctl enable npcd
+# systemctl start npcd
+# systemctl restart nagios
+# systemctl restart httpd
+
+	Step 4: Verify PNP4Nagios configuration
+# cd scripts
+# ./verify\_pnp\_config\_v2.pl -m bulk -c /usr/local/nagios/etc/nagios.cfg -p /usr/local/pnp4nagios/etc/
+
+	Step 5: Edit vi /usr/local/nagios/etc/nagios.cfg file add add below lines at the end
+	
+	service performance data
+service\_perfdata\_file=/usr/local/pnp4nagios/var/service-perfdata
+service\_perfdata\_file\_template=DATATYPE::SERVICEPERFDATA\\tTIMET::$TIMET$\\tHOSTNAME::$HOSTNAME$\\tSERVICEDESC::$SERVICEDESC$\\tSERVICEPERFDATA::$SERVICEPERFDATA$\\tSERVICECHECKCOMMAND::$SERVICECHECKCOMMAND$\\tHOSTSTATE::$HOSTSTATE$\\tHOSTSTATETYPE::$HOSTSTATETYPE$\\tSERVICESTATE::$SERVICESTATE$\\tSERVICESTATETYPE::$SERVICESTATETYPE$
+service\_perfdata\_file\_mode=a
+service\_perfdata\_file\_processing\_interval=15
+service\_perfdata\_file\_processing\_command=process-service-perfdata-file
+
+	host performance data starting with Nagios 3.0
+host\_perfdata\_file=/usr/local/pnp4nagios/var/host-perfdata
+host\_perfdata\_file\_template=DATATYPE::HOSTPERFDATA\\tTIMET::$TIMET$\\tHOSTNAME::$HOSTNAME$\\tHOSTPERFDATA::$HOSTPERFDATA$\\tHOSTCHECKCOMMAND::$HOSTCHECKCOMMAND$\\tHOSTSTATE::$HOSTSTATE$\\tHOSTSTATETYPE::$HOSTSTATETYPE$
+host\_perfdata\_file\_mode=a
+host\_perfdata\_file\_processing\_interval=15
+host\_perfdata\_file\_processing\_command=process-host-perfdata-file\`
+
+	Step 6: Change below value from 0 to 1
+
+process\_performance\_data=1
+enable\_environment\_macros=1
+
+	Step 7: Error 1 – [CRIT] Command process-service-perfdata-file is not defined
+# vi /usr/local/nagios/etc/objects/commands.cfg
+
+define command{
+       command\_name    process-service-perfdata-file
+       command\_line    /usr/local/pnp4nagios/libexec/process\_perfdata.pl --bulk=/usr/local/pnp4nagios/var/service-perfdata
+}
+
+define command{
+       command\_name    process-host-perfdata-file
+       command\_line    /usr/local/pnp4nagios/libexec/process\_perfdata.pl --bulk=/usr/local/pnp4nagios/var/host-perfdata
+}
+
+# yum install php-xml
+
+	Step 8: Error 2 – sizeof(): Parameter must be an array or an object that implements Countable
+# vi /usr/local/pnp4nagios/share/application/models/data.php
+Default line number: 979
+
+Change from
+if(sizeof($pages) > 0 ){
+
+To
+/\*if(sizeof($pages) > 0 ){\*/
+   if(is\_array($pages)&&sizeof($pages) > 0){
+
+# systemctl restart httpd
+# systemctl restart nagios
+
+	Step 9: Error 3
+		Deprecated Methods v/ith the same name as the r class «ni not De constructors in a future version of 
+PHP Servlces_JSON has a deprecated constructor ‘usr local pnp4nagios share applications ison.php on line 115 
+Deprecated Methods with the same name as the« class nH not be constructors in a future version of 
+PHP Services_JSON_Error has a deprecated constructor in ‘usr>local’pnp4nagios>’share application/lib json.php 
+on line 781 Deprecated Methods with the same name as the« class w not be constructors in a future version of PHP 
+Services_JSON_Errot has a deprecated constructor in ‘usr’local’pnp4nagios’Share application/lib json.php on line 795
+
+# vi /usr/local/pnp4nagios/share/application/lib/json.php
+
+From
+class Services\_JSON
+To
+class \_Services\_JSON
+
+From
+class Services\_JSON\_Error extends PEAR\_Error
+To
+class \_Services\_JSON\_Error extends PEAR\_Error
+
+From
+class Services\_JSON\_Error
+To
+class \_Services\_JSON\_Error
+
+# rm -rf /usr/local/pnp4nagios/share/install.php
+
+	Step 10: Define a service to “ping” the local machine
+# vi /usr/local/nagios/etc/objects/localhost.cfg
+
+define service {
+
+    use                                                           local-service           ; Name of service template to use
+    host\_name                                             localhost
+    service\_description                              PING
+    check\_command                                  check\_ping!100.0,20%!500.0,60%
+    action\_url       /pnp4nagios/index.php/graph?host=$HOSTNAME$&srv=$SERVICEDESC$
+}
+
+# systemctl restart httpd
+# systemctl restart nagios
+
+	Step 11: Open Browser
+	
+	
+	
+	
+HOST & SERVICES 
+
+		/etc/nagios/nrpe.cfg
+
+command[check_load]=/usr/lib/nagios/plugins/check_load -w 15,10,5 -c 30,25,20
+command[check_disk]=/usr/lib/nagios/plugins/check_disk -w 20% -c 10%
+command[check_ping]=/usr/lib/nagios/plugins/check_ping -H localhost -w 100.0,20% -c 500.0,60%
+command[check_http]=/usr/lib/nagios/plugins/check_http -H localhost
+command[check_current_load]=/usr/lib/nagios/plugins/check_current_load -w 2.0,1.5,1.0 -c 3.0,2.5,2.0
+command[check_users]=/usr/lib/nagios/plugins/check_users -w 5 -c 10
+command[check_root]=/usr/lib/nagios/plugins/check_disk -w 20% -c 10% -p /
+command[check_ssh]=/usr/lib/nagios/plugins/check_ssh -p 22
+command[check_procs]=/usr/lib/nagios/plugins/check_procs -w 250 -c 400
+command[check_swap]=/usr/lib/nagios/plugins/check_swap -w 20% -c 10%	
+
+		nano /usr/local/nagios/etc/servers/admin.cfg
+define host {
+        use                             linux-server
+        host_name                       admin
+        alias                           sudo123
+        address                         10.225.247.75
+        max_check_attempts              5
+        check_period                    24x7
+        notification_interval           30
+        notification_period             24x7
+}
+
+define service {
+    use                             generic-service
+    host_name                       admin
+    service_description             Load Average
+    check_command                   check_nrpe!check_load
+}
+
+define service {
+    use                             generic-service
+    host_name                       admin
+    service_description             Disk Usage
+    check_command                   check_nrpe!check_disk
+}
+
+define service {
+    use                             generic-service
+    host_name                       admin
+    service_description             Ping
+    check_command                   check_nrpe!check_ping
+}
+
+define service {
+    use                             generic-service
+    host_name                       admin
+    service_description             HTTP
+    check_command                   check_nrpe!check_http
+}
+
+define service {
+    use                             generic-service
+    host_name                       admin
+    service_description             Current Load
+    check_command                   check_nrpe!check_current_load
+}
+
+define service {
+    use                             generic-service
+    host_name                       admin
+    service_description             Current Users
+    check_command                   check_nrpe!check_users
+}
+
+define service {
+    use                             generic-service
+    host_name                       admin
+    service_description             Root Partition
+    check_command                   check_nrpe!check_root
+}
+
+define service {
+    use                             generic-service
+    host_name                       admin
+    service_description             SSH
+    check_command                   check_nrpe!check_ssh
+}
+
+define service {
+    use                             generic-service
+    host_name                       admin
+    service_description             Total Processes
+    check_command                   check_nrpe!check_procs
+}
+
+define service {
+    use                             generic-service
+    host_name                       admin
+    service_description             Swap Usage
+    check_command                   check_nrpe!check_swap
+}
+
+
+command[check_ram]=/usr/local/nagios/libexec/check_mem.pl -w 10 -c 5 -f
+command[check_swap]=/usr/local/nagios/libexec/check_swap -w 20 -c 10
+command[check_ping]=/usr/local/nagios/libexec/check_ping -H $ARG1$ -w $ARG2$ -c $ARG3$ -p 5
+command[check_disk]=/usr/local/nagios/libexec/check_disk -w 20% -c 10%
+

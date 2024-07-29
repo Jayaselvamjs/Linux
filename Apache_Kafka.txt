@@ -1,0 +1,155 @@
+https://www.digitalocean.com/community/tutorials/how-to-install-apache-kafka-on-ubuntu-20-04
+
+-----------------------------------------------Install Apache Kafka on Ubuntu--------------------------------------------
+
+------------------Step 1 — Creating a User for Kafka
+
+sudo adduser kafka
+sudo adduser kafka sudo
+su -l kafka
+
+------------------Step 2 — Downloading and Extracting the Kafka Binaries
+
+mkdir ~/Downloads
+curl "https://downloads.apache.org/kafka/2.8.2/kafka_2.13-2.8.2.tgz" -o ~/Downloads/kafka.tgz
+mkdir ~/kafka && cd ~/kafka 
+tar -xvzf ~/Downloads/kafka.tgz --strip 1
+
+------------------Step 3 — Configuring the Kafka Server
+
+nano ~/kafka/config/server.properties
+			delete.topic.enable = true   -----------Add the line to the bottom of the file
+			log.dirs=/home/kafka/logs
+			
+------------------Step 4 — Creating systemd Unit Files and Starting the Kafka Server
+
+sudo nano /etc/systemd/system/zookeeper.service
+__________________
+[Unit]
+Requires=network.target remote-fs.target
+After=network.target remote-fs.target
+
+[Service]
+Type=simple
+User=kafka
+ExecStart=/home/kafka/kafka/bin/zookeeper-server-start.sh /home/kafka/kafka/config/zookeeper.properties
+ExecStop=/home/kafka/kafka/bin/zookeeper-server-stop.sh
+Restart=on-abnormal
+
+[Install]
+WantedBy=multi-user.target
+__________________
+
+sudo nano /etc/systemd/system/kafka.service
+__________________
+[Unit]
+Requires=zookeeper.service
+After=zookeeper.service
+
+[Service]
+Type=simple
+User=kafka
+ExecStart=/bin/sh -c '/home/kafka/kafka/bin/kafka-server-start.sh /home/kafka/kafka/config/server.properties > /home/kafka/kafka/kafka.log 2>&1'
+ExecStop=/home/kafka/kafka/bin/kafka-server-stop.sh
+Restart=on-abnormal
+
+[Install]
+WantedBy=multi-user.target
+__________________
+
+sudo apt update
+sudo apt install default-jdk
+wget https://download.oracle.com/java/17/archive/jdk-17.0.10_linux-x64_bin.deb
+dpkg -i jdk-17.0.10_linux-x64_bin
+java --version
+
+sudo systemctl daemon-reload
+sudo systemctl start zookeeper
+sudo systemctl status zookeeper
+sudo journalctl -u zookeeper
+
+sudo systemctl start kafka
+sudo systemctl status kafka
+
+Output
+● kafka.service
+     Loaded: loaded (/etc/systemd/system/kafka.service; disabled; vendor preset>
+     Active: active (running) since Wed 2023-02-01 23:44:12 UTC; 4s ago
+   Main PID: 17770 (sh)
+      Tasks: 69 (limit: 4677)
+     Memory: 321.9M
+     CGroup: /system.slice/kafka.service
+             ├─17770 /bin/sh -c /home/kafka/kafka/bin/kafka-server-start.sh /ho>
+             └─17793 java -Xmx1G -Xms1G -server -XX:+UseG1GC -XX:MaxGCPauseMill>
+			 
+sudo systemctl enable zookeeper
+
+Output
+Created symlink /etc/systemd/system/multi-user.target.wants/zookeeper.service → /etc/systemd/system/zookeeper.service.
+
+sudo systemctl enable kafka
+
+Output
+Created symlink /etc/systemd/system/multi-user.target.wants/kafka.service → /etc/systemd/system/kafka.service.
+
+------------------Step 5 — Testing the Kafka Installation
+Publishing messages in Kafka requires:
+    A producer, who enables the publication of records and data to topics.
+    A consumer, who reads messages and data from topics.
+
+~/kafka/bin/kafka-topics.sh --create --zookeeper localhost:9092 --replication-factor 1 --partitions 1 --topic TutorialTopic
+
+Output
+Created topic TutorialTopic.
+
+echo "Hello, World" | ~/kafka/bin/kafka-console-producer.sh --broker-list localhost:9092 --topic TutorialTopic > /dev/null
+
+~/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic TutorialTopic --from-beginning
+
+Output
+Hello, World
+
+su -l kafka
+echo "Hello World from Sammy at DigitalOcean!" | ~/kafka/bin/kafka-console-producer.sh --broker-list localhost:9092 --topic TutorialTopic > /dev/null
+
+Output
+Hello, World
+Hello World from Sammy at DigitalOcean!
+
+------------------Step 6 — Hardening the Kafka Server
+
+sudo deluser kafka sudo
+sudo passwd kafka -l
+sudo su - kafka
+sudo passwd kafka -u
+
+------------------Step 7 — Installing KafkaT (Optional)
+
+sudo apt install ruby ruby-dev build-essential
+sudo CFLAGS=-Wno-error=format-overflow gem install kafkat
+
+Output
+...
+Done installing documentation for json, colored, retryable, highline, trollop, zookeeper, zk, kafkat after 3 seconds
+8 gems installed
+
+nano ~/.kafkatcfg
+__________________
+{
+  "kafka_path": "~/kafka",
+  "log_path": "/home/kafka/logs",
+  "zk_path": "localhost:9092"
+}
+__________________
+
+kafkat partitions\
+
+Output
+[DEPRECATION] The trollop gem has been renamed to optimist and will no longer be supported. Please switch to optimist as soon as possible.
+/var/lib/gems/2.7.0/gems/json-1.8.6/lib/json/common.rb:155: warning: Using the last argument as keyword parameters is deprecated
+...
+Topic                 Partition   Leader      Replicas        ISRs
+TutorialTopic         0             0         [0]             [0]
+__consumer_offsets	  0		          0		      [0]							[0]
+...
+...

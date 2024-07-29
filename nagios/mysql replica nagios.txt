@@ -1,0 +1,414 @@
+	wget wget https://www.claudiokuenzler.com/monitoring-plugins/check_mysql_slavestatus.sh
+
+
+Requirements
+    --> The following Shell commands must exist and be executable by your Nagios user: grep, cut
+    --> The mysql (client) command must be available (this command usually comes from the mysql-client or mariadb-client package)
+    --> The MySQL user you want to use for this plugin needs REPLICATION CLIENT privileges.
+    --> Here is an example how to grant the necessary privileges to a user nagios:
+
+GRANT REPLICATION CLIENT ON *.* TO 'nagios'@'monitoringhost' IDENTIFIED BY 'secret';
+
+    --> If you use MariaDB 10.5 or newer, the MySQL user you want to use for this plugin needs REPLICA MONITOR privileges.
+    --> Here is an example how to grant the necessary privileges to a user nagios:
+
+GRANT REPLICA MONITOR ON *.* TO 'nagios'@'monitoringhost' IDENTIFIED BY 'secret';
+
+Definition of the parameters
+Parameter 	Notes 	Description
+-o 		1 	Path to mysql client options file containing connection credentials (e.g. /home/nagios/.my.cnf)
+-H 		2 	Hostname or IP address of server to check
+-P 			Port of MySQL server (standard is 3306)
+-S 		2 	Path to local mysqld socket (e.g. /run/mysqld/mysqld.sock)
+-u 		3 	Username of user who has rights on the MySQL server
+-p 		3 	Password of the user declared with -u parameter
+-s 		4 	Source name of master connection (optional, for multi-source replication)
+-C 		4 	Channel connection name (optional, for multi-source replication)
+-w 			Warning delay of slave replication behind master (in seconds)
+-c 			Critical delay of slave replication behind master (in seconds)
+-m 		5 	Checks whether or not the replication (exec log position to be exact) has moved in the last VALUE (in seconds)
+--help 		Show help/usage
+
+1: The options file can contain all communication settings and will be read by the mysql command. Using this, makes the other required connect parameters
+   (-H or -S) optional. This is the most secure way to use the credentials.
+2: Unless defined in the options file, a host/ip address to connect to (-H) or a local socket (-S) is required.
+3: When using -H or -S to connect to MySQL, credentials are required.
+4: Source connection (-s) and channel (-C) parameters are mutually exclusive, use only one of them.
+5: This subcheck adds additional reliability to your slave replication check. It checks if the slave's log position has moved in the last N seconds. 
+   On a replication setup without many write operations, this might need to be set to a higher value.
+
+USAGE / RUNNING THE PLUGIN ON THE COMMAND LINE
+
+USAGE: ./check_mysql_slavestatus.sh (-o path|(-H string [-P int]|-S path) -u string -p string) [-s string] [-w int] [-c int] [-m int]
+
+Example 1: Connection to a remote MySQL server using credentials. Warning when slave is 60s, critical alert when 120s behind master.
+
+$ ./check_mysql_slavestatus.sh -H 10.0.0.100 -u nagios -p secret -w 60 -c 120
+
+Example 2: Connection to local MySQL server using socket credentials. Warning when slave is 60s, critical alert when 120s behind master.
+
+$ ./check_mysql_slavestatus.sh -S /run/mysqld/mysqld.sock -u nagios -p secret -w 60 -c 120
+
+Example 3: Connection to a remote MySQL server using a local mysql client file. Warning when slave is 60s, critical alert when 120s behind master.
+
+$ cat /home/nagios/.my.cnf
+[mysql]
+host=10.0.0.100
+user=nagios
+password=secret
+port=3306
+
+$ ./check_mysql_slavestatus.sh -o /home/nagios/.my.cnf -w 60 -c 120
+OK: Slave SQL running: Yes Slave IO running: Yes / master: 192.168.12.11 / slave is 0 seconds behind master | delay=0s
+
+Example 4: Connection to local MySQL server using credentials. Warning when slave is 60s, critical alert when 120s behind master. 
+Addtionally warn when replication has not moved within 10s.
+
+$ ./check_mysql_slavestatus.sh -S /run/mysqld/mysqld.sock -u nagios -p secret -w 60 -c 120 -m 10
+WARNING: Slave replication has not moved in 10 seconds. Manual check required.
+
+COMMAND DEFINITION
+Command definition in Nagios, Icinga 1.x, Shinken, Naemon
+
+# 'check_mysql_slavestatus' command definition
+define command{
+  command_name check_mysql_slavestatus
+  command_line $USER1$/check_mysql_slavestatus.sh -H $HOSTADDRESS$ -P $ARG1$ -u $ARG2$ -p $ARG3$
+}
+
+Or with delay check:
+
+# 'check_mysql_slavestatus' command definition with delay check
+define command{
+  command_name check_mysql_slavestatus
+  command_line $USER1$/check_mysql_slavestatus.sh -H $HOSTADDRESS$ -P $ARG1$ -u $ARG2$ -p $ARG3$ -w $ARG4$ -c $ARG5$
+}
+Command definition in Icinga 2.x
+
+object CheckCommand "check_mysql_slavestatus" {
+  import "plugin-check-command"
+
+  command = [ PluginContribDir + "/check_mysql_slavestatus.sh" ]
+
+  arguments = {
+    "-o" = {
+      value = "$mysql_slave_optionfile$"
+      description = "Path to mysql client options file containing connection credentials"
+    }
+    "-H" = {
+      value = "$mysql_slave_host$"
+      description = "DNS hostname or IP address of MySQL Slave"
+    }
+    "-S" = {
+      value = "$mysql_slave_socket$"
+      description = "Path to local mysqld socket"
+    }
+    "-P" = {
+      value = "$mysql_slave_port$"
+      description = "MySQL Listening Port (defaults to 3306)"
+    }
+    "-u" = {
+      value = "$mysql_slave_user$"
+      description = "MySQL username"
+    }
+    "-p" = {
+      value = "$mysql_slave_password$"
+      description = "MySQL password"
+    }
+    "-w" = {
+      value = "$mysql_slave_warning$"
+      description = "Warning delay in seconds"
+    }
+    "-c" = {
+      value = "$mysql_slave_critical$"
+      description = "Critical delay in seconds"
+    }
+    "-s" = {
+      value = "$mysql_slave_connection$"
+      description = "Source connection name when multi-source replication is used"
+    }
+    "-C" = {
+      value = "$mysql_slave_channel$"
+      description = "Channel name when multi-source replication is used"
+    }
+    "-m" = {
+      set_if = "$mysql_slave_moving$"
+      description = "Additionally check for replication to keep moving (slave log position). Value in seconds."
+    }
+  }
+
+  vars.mysql_slave_host = "$address$"
+  vars.mysql_slave_port = 3306
+  vars.mysql_slave_warning = 30
+  vars.mysql_slave_critical = 120
+}
+SERVICE DEFINITION
+Service definition in Nagios, Icinga 1.x, Shinken, Naemon
+Basic check without thresholds:
+
+# check MySQL Slave Status
+define service{
+use generic-service ; Name of service template to use
+host_name mysqlslaveserver
+service_description MySQL Replication Status
+check_command check_mysql_slavestatus!portnumber!username!passwd
+}
+
+Basic check with thresholds (replication delay in seconds):
+
+# check MySQL Slave Delay
+define service{
+use generic-service ; Name of service template to use
+host_name mysqlslaveserver
+service_description MySQL Replication Delay
+check_command check_mysql_slavestatus!portnumber!username!passwd!300!600
+}
+Service object definition Icinga 2.x
+
+# MySQL Replication Slave Status using credentials
+object Service "MySQL Replication Status" {
+  import "generic-service"
+  host_name "mysqlslaveserver"
+  check_command = "check_mysql_slavestatus"
+  vars.mysql_slave_user = "nagios"
+  vars.mysql_slave_password = "secret"
+  vars.mysql_slave_warning = "300"
+  vars.mysql_slave_critical = "600"
+}
+
+# MySQL Replication Slave Status using option file
+object Service "MySQL Replication Status" {
+  import "generic-service"
+  host_name "mysqlslaveserver"
+  check_command = "check_mysql_slavestatus"
+  vars.mysql_slave_optionfile = "/home/nagios/.my.cnf"
+  vars.mysql_slave_warning = "300"
+  vars.mysql_slave_critical = "600"
+}
+
+______________________________________________________________________________________________________________________
+
+wget
+
+tar -zxvf 
+cd check_mysql_health
+./configure
+make all
+make install
+
+cd /usr/local/nagios/etc/libexes
+./check_mysql_health
+
+./check_mysql_health --hostname 10.225.247.164 --port 3306 --username nagios --password nagios --mode uptime --method_mysql 
+
+vi /usr/local/nagios/etc/objects/commands.cfg
+	
+define command {	
+		command_name	check_mysql_health 
+		command_line 	$USER1$/check_mysql_health --hostname $HOSTADDRESS$ --port 3306 --username $ARG1$ --password $ARG2$ --mode $ARG3$ --method_mysql 
+}
+
+vi /usr/local/nagios/etc/linuxservers/linuxserver.cfg
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service Uptime
+		check_command		check_mysql_health!root!mysql!uptime
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service connection-time
+		check_command		check_mysql_health!root!mysql!connection-time
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service uptime
+		check_command		check_mysql_health!root!mysql!uptime
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service threads-connected
+		check_command		check_mysql_health!root!mysql!threads-connected
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service threadcache-hitrate
+		check_command		check_mysql_health!root!mysql!threadcache-hitrate
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service threadcache-created
+		check_command		check_mysql_health!root!mysql!threadcache-created
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service threads-running
+		check_command		check_mysql_health!root!mysql!threads-running
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service threads-cached
+		check_command		check_mysql_health!root!mysql!threads-cached
+}
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service connects-aborted
+		check_command		check_mysql_health!root!mysql!connects-aborted
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service clients-aborted
+		check_command		check_mysql_health!root!mysql!clients-aborted
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service slave-lag 
+		check_command		check_mysql_health!root!mysql!slave-lag
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service slave-io-running
+		check_command		check_mysql_health!root!mysql!slave-io-running
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service slave-sql-running
+		check_command		check_mysql_health!root!mysql!slave-sql-running
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service qcache-hitrate
+		check_command		check_mysql_health!root!mysql!qcache-hitrate
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service qcache-lowmem-prunes
+		check_command		check_mysql_health!root!mysql!qcache-lowmem-prunes
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service keycache-hitrate
+		check_command		check_mysql_health!root!mysql!keycache-hitrate 
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service bufferpool-hitrate
+		check_command		check_mysql_health!root!mysql!bufferpool-hitrate 
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service bufferpool-wait-free
+		check_command		check_mysql_health!root!mysql!bufferpool-wait-free
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service log-waits
+		check_command		check_mysql_health!root!mysql!log-waits
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service tablecache-hitrate
+		check_command		check_mysql_health!root!mysql!tablecache-hitrate
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service table-lock-connection
+		check_command		check_mysql_health!root!mysql!table-lock-connection
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service index-usage
+		check_command		check_mysql_health!root!mysql!index-usage
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service tmp-disk-tables
+		check_command		check_mysql_health!root!mysql!tmp-disk-tables
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service table-fragmentation
+		check_command		check_mysql_health!root!mysql!table-fragmentation
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service open-files 
+		check_command		check_mysql_health!root!mysql!open-files
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service slow-queries
+		check_command		check_mysql_health!root!mysql!slow-queries
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service long-running-procs
+		check_command		check_mysql_health!root!mysql!long-running-procs
+}
+
+define service {
+		use 				service-techarkit
+		host_name			linuxservers
+		service_description	MySQL Service cluster-ndbd-running
+		check_command		check_mysql_health!root!mysql!cluster-ndbd-running
+}
+
+
+
+
+/usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+systemctl restart nagios
+__________________________________________________________________________________________________________________

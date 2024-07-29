@@ -1,0 +1,133 @@
+########################################################## UBUNTU ######################################################################
+---------------------------------------Step 1 — Downloading and Installing the Components
+On the Host
+    sudo apt update
+    sudo apt install nfs-kernel-server
+On the Client
+    sudo apt update
+    sudo apt install nfs-common
+
+----------------------------------------Step 2 — Creating the Share Directories on the Host
+
+sudo mkdir -p /mnt/volume-nyc3-01/nfs
+ls -dl /mnt/volume-nyc3-01/nfs/
+sudo chown nobody:nogroup /mnt/volume-nyc3-01/nfs/
+
+--------------------------------------Step 3 — Configuring the NFS Exports on the Host Server
+
+sudo nano /etc/exports
+	/mnt/volume-nyc3-01/nfs/    client_ip(rw,sync,no_subtree_check)
+	
+sudo systemctl restart nfs-kernel-server
+
+-------------------------------------------Step 4 — Adjusting the Firewall on the Host
+
+sudo ufw status
+sudo ufw allow from client_ip to any port nfs
+sudo ufw status
+
+------------------------------Step 5 — Creating Mount Points and Mounting Directories on the Client
+
+sudo mkdir -p /nfs/general
+sudo mount host_ip:/mnt/volume-nyc3-01/nfs/ /nfs/general
+df -h
+du -sh /nfs/general
+
+--------------------------------------Step 7 — Mounting the Remote NFS Directories at Boot
+
+sudo nano /etc/fstab
+	host_ip:/mnt/volume-nyc3-01/nfs/    /nfs/general   nfs auto,nofail,noatime,nolock,intr,tcp,actimeo=1800 0 0
+	
+------------------------------------------Step 8 — Unmounting an NFS Remote Share
+
+sudo umount /nfs/general
+df -h
+
+############################################################# RED HAT #################################################################
+------------------------------------------------------------Install NFS
+sudo dnf install nfs-utils
+sudo systemctl enable --now nfs-server
+sudo systemctl enable --now rpcbind
+--------------------------------------------------------Set a shared location
+sudo mkdir -p /nfs/exports/myshare
+------------------------------------------------------Export the shared location
+echo "/nfs/exports/myshare 192.168.122.0/24(rw)" > /etc/exports
+-----------------------------------------------------------Set ownership
+sudo chown root:staff /nfs/exports/myshare
+sudo chmod 775 /nfs/exports/myshare
+--------------------------------------------------------Export the exports
+sudo exportfs -r
+-----------------------------------------------------Configure your firewall
+sudo firewall-cmd --add-service nfs --permanent
+------------------------------------------------------Set up your client
+----------------create a mount point for the NFS share
+sudo mkdir /nfs/imports/myshare
+----------------mount the NFS volume
+sudo mount -v \
+-t nfs 192.168.122.17:/nfs/exports/myshare \
+/nfs/imports/myshare/
+----------------permanent and automatic process by adding the NFS volume to the client's /etc/fstab file
+192.168.122.17:/nfs/exports/myshare   /nfs/imports/myshare/  nfs  rw 0 0
+----------------NFS volume is mounted with the mount command
+sudo mount | grep -i nfs
+192.168.122.17:/nfs/exports/myshare on /nfs/imports/myshare
+
+######################################################### RHEL #########################################################################
+---------NFS Server and Client Setup
+    NFS Server – RHEL 9 with IP 10.128.15.213
+    NFS Client – RHEL 9 with IP 10.128.15.214
+---------Install NFS on Server and Client
+sudo dnf update
+sudo dnf install rpcbind nfs-utils -y
+sudo systemctl enable nfs-server
+sudo systemctl enable rpcbind
+sudo systemctl status nfs-server
+sudo systemctl status rpcbind
+sudo firewall-cmd --permanent --add-service={nfs,rpc-bind,mountd}
+sudo firewall-cmd --permanent --add-service={nfs,rpc-bind,mountd}
+---------Create an NFS Share Directory
+mkdir -p /home/tecmint/my_nfsshare
+sudo chmod 777 -R /home/tecmint/my_nfsshare
+---------Export an NFS Share Directory
+sudo vim /etc/exports
+	/home/tecmint/my_nfsshare server-ip/24(rw,no_root_squash)
+	
+sudo exportfs -rv
+showmount -e localhost
+
+---------Configure NFS Client
+showmount -e 10.128.15.213
+mkdir nfs_backup
+mount -t nfs 10.128.15.213:/home/tecmint/my_nfsshare  ~/nfs_backup 
+vim /etc/fstab
+10.128.15.213:/home/tecmint/my_nfsshare    /root/nfs_backup  nfs     defaults 0 0
+
+#######################################################################################################################################
+---------------------- server -----------------------
+
+apt-get install nfs-kernel-server
+apt-get install nfs*
+
+mkdir /share_file
+
+nano /etc/exports
+		/share_file 	client_ip/24(rw,sync,no_root_squash)
+
+		
+exportfs -v
+
+service nfs-kernel-server restart
+
+---------------------- client -----------------------------
+
+apt-get instal nfs-utils
+
+showmount -e server_ip
+
+mkdir /file_share
+
+nano /etc/fstab
+
+mount server_ip:/share_file /file_share
+
+service nfs-kernel-server restart

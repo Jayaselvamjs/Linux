@@ -1,0 +1,204 @@
+Step 1 – Install Nginx, MariaDB and PHP
+apt-get update -y
+apt-get install nginx mariadb-server php php-fpm php-mysql php-cli php-ldap php-zip php-curl php php-cli php-mbstring php-xmlrpc php-soap php-gd php-xml php-intl php-pear php-bcmath unzip -
+sudo apt-get install nginx mariadb-server php7.3 php7.3-fpm php7.3-mysql php7.3-cli php7.3-ldap php7.3-zip php7.3-curl php7.3-mbstring php7.3-xmlrpc php7.3-soap php7.3-gd php7.3-xml php7.3-intl php7.3-pear php7.3-bcmath unzip
+sudo apt-get install php7.3-json
+
+
+##After installing all the packages, tweak the PHP settings by editing the file php.ini:
+
+nano /etc/php/7.3/fpm/php.ini
+
+
+Change the following settings:
+
+file_uploads = On
+allow_url_fopen = On
+short_open_tag = On
+cgi.fix_pathinfo = 0
+memory_limit = 512M
+upload_max_filesize = 100M
+max_execution_time = 300
+max_input_vars = 1600
+date.timezone = America/Chicago
+
+   192  short_open_tag = Off
+   380  max_execution_time = 30
+   397  ;max_input_vars = 1000
+   401  memory_limit = 128M
+   793  ;cgi.fix_pathinfo=1
+   832  file_uploads = On
+   841  upload_max_filesize = 2M
+   852  allow_url_fopen = On
+   956  ;date.timezone =
+
+
+
+Step 2 – Configure MariaDB Database
+
+mysql -u root -p
+
+CREATE DATABASE mantisdb;
+
+GRANT ALL PRIVILEGES ON mantis.* TO 'mantisuser'@'localhost' IDENTIFIED BY 'secure-password';
+
+FLUSH PRIVILEGES;
+EXIT
+
+Step 3 – Download MantisBT
+
+
+wget https://sourceforge.net/projects/mantisbt/files/mantis-stable/2.24.1/mantisbt-2.24.1.zip
+
+
+unzip mantisbt-2.24.1.zip
+
+mv mantisbt-2.24.1 /var/www/html/mantisbt
+
+Next, set proper permissions and ownership to the mantisbt directory:
+
+chown -R www-data:www-data /var/www/html/mantisbt
+chmod -R 755 /var/www/html/mantisbt
+
+Step 4 – Configure Nginx for MantisBT
+
+
+nano /etc/nginx/sites-available/mantisbt
+
+Add the following lines:
+
+server {
+listen 80;
+server_name mantisbt.example.com;
+root /var/www/html/mantisbt;
+index index.php;
+
+access_log /var/log/nginx/example.com.access.log;
+error_log /var/log/nginx/example.com.error.log;
+
+client_max_body_size 100M;
+
+autoindex off;
+
+location / {
+index index.html index.php;
+try_files $uri /index.php$is_args$args;
+}
+
+location ~ \.php$ {
+include snippets/fastcgi-php.conf;
+fastcgi_pass unix:/var/run/php/php7.3-fpm.sock;
+include fastcgi_params;
+fastcgi_intercept_errors on;
+}
+}
+Save and close the file, then enable the Mantis virtual host with the following command:
+
+
+ln -s /etc/nginx/sites-available/mantisbt /etc/nginx/sites-enabled/
+
+nginx -t
+
+You should get the following output:
+
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+
+systemctl restart nginx
+
+Step 5 – Access Mantis Web UI
+
+http://mantisbt.example.com. 
+_____________________________________________________________________________________________________________________
+---------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------1 Getting Started---------------------------------------------
+sudo apt update && apt upgrade -y
+
+-----------------------------------------------------2 Install LAMP Server-------------------------------------------
+--------------------------------------------------Install Apache Web Server------------------------------------------
+sudo apt install apache2 -y
+sudo systemctl status apache2
+sudo systemctl start apache2
+sudo systemctl enable apache2
+
+------------------------------------------------------Install PHP----------------------------------------------------
+sudo apt-get install libssh2-1 libssh2-1-dev
+sudo apt install php-pear php7.3-ssh2
+sudo apt update
+sudo apt install software-properties-common
+sudo add-apt-repository ppa:ondrej/php
+sudo apt update
+sudo apt install php7.3 php7.3-mbstring php7.3-xml php7.3-pdo php7.3-gd php7.3-mysql php7.3-json
+#sudo apt install wget php php-cli php-fpm php-mysql php-zip php-gd php-mbstring php-curl php-xml php-pear php-bcmath
+php -v
+sudo vim /etc/php/7.2/apache2/php.ini
+___________
+	upload_max_filesize = 50M
+___________
+
+----------------------------------------Install and Configure Database server for Mantis-----------------------------
+sudo apt install mariadb-server mariadb-client
+sudo systemctl start mariadb
+sudo systemctl enable mariadb
+sudo systemctl status mariadb
+sudo mysql_secure_installation
+		Set root password? [Y/n] Y
+		New password:
+		Re-enter new password:
+		Remove anonymous users? [Y/n] Y
+		Disallow root login remotely? [Y/n] Y
+		Remove test database and access to it? [Y/n] Y
+		Reload privilege tables now? [Y/n] Y
+
+sudo mysql -u root -p
+	mysql> USE mysql;
+	mysql> UPDATE user SET plugin='mysql_native_password' WHERE User='root';
+	mysql> FLUSH PRIVILEGES;
+	mysql> exit;
+sudo systemctl restart mariadb
+
+MariaDB [(none)]> CREATE DATABASE mantisdb;
+MariaDB [(none)]>CREATE USER 'mantis'@'localhost' IDENTIFIED BY 'mentis';
+MariaDB [(none)]>GRANT ALL PRIVILEGES ON mantisdb.* TO 'mantis'@'localhost' IDENTIFIED BY 'mentis' WITH GRANT OPTION;
+MariaDB [(none)]>FLUSH PRIVILEGES;
+MariaDB [(none)]>exit;
+
+-------------------------------------------------------Install Mantis BT---------------------------------------------
+wget https://excellmedia.dl.sourceforge.net/project/mantisbt/mantis-stable/2.22.1/mantisbt-2.22.1.zip
+unzip mantisbt-2.22.1.zip
+sudo mv mantisbt-2.22.1 /var/www/html/mantis/
+sudo chown -R www-data:www-data /var/www/html/mantis
+sudo vim /etc/apache2/sites-available/mantis.conf
+___________
+<VirtualHost *:80>
+    ServerAdmin webmaster@yourdomain.com
+    DocumentRoot "/var/www/html/mantis"
+    ServerName yourdomain.com
+    ServerAlias www.yourdomain.com
+    ErrorLog "/var/log/apache2/mantis-error_log"
+    CustomLog "/var/log/apache2/mantis-access_log" combined
+        <Directory "/var/www/html/mantis/">
+            DirectoryIndex index.php index.html
+            Options FollowSymLinks
+            AllowOverride All
+            Require all granted
+        </Directory>
+</VirtualHost>
+___________
+sudo a2ensite mantis.conf
+sudo systemctl restart apache2
+
+-------------------------------------------------Configure the Firewall----------------------------------------------
+sudo ufw enable
+systemctl status ufw
+sudo ufw allow 80
+
+--------------------------------------------Access Mantis BT Web Interface-------------------------------------------
+URL http://yourdomain.com,
+
+localhost/mantis
+
+
+Provide a default Mantis BT username "administrator" and password "root". 
+Then click on the "Login" button and you should see the Mantis BT Dashboard in the following image:

@@ -1,0 +1,27 @@
+#!/bin/bash
+# ex9.sh
+subject=$1" Host Alert: "$2" is "$3
+echo $subject
+body="<html><body><table width="100%" border=0 cellpadding=0 cellspacing=0><tr ><th  colspan="2" >Precision Infomatic(M)Pvt Ltd</th></tr><br/>"
+case $3 in
+   "OK") body=$body"<tr  bgcolor=#00B050><font color=#ffffff>";;
+   "DOWN") body=$body"<tr  bgcolor=#EC1B23><font color=#ffffff>";;
+   "UP") body=$body"<tr  bgcolor=#00B050><font color=#ffffff>";;
+   "WARNING") body=$body"<tr  bgcolor=#FFFF00><font color=#000000>";;
+   "CRITICAL") body=$body"<tr  bgcolor=#EC1B23><font color=#ffffff>";;
+   *) body=$body"<tr  bgcolor=#FFFF00><font color=#000000>";;
+esac
+body=$body"<b><td style=width:150px>Notification Type: </td><td>$1</td></b></font></tr>"
+body=$body"<tr bgcolor=#eeeeee><td>Host: </td><td>$2</td></tr>"
+body=$body"<tr bgcolor=#fefefe><td>Address: </td><td>$4</td></tr>"
+body=$body"<tr bgcolor=#eeeeee><td>Date/Time: </td><td>$6</td></tr>"
+body=$body"<tr bgcolor=#fefefe><td>State: </td><td>$3</td></tr>"
+body=$body"<tr bgcolor=#fefefe><td>Duration: </td><td>$8</td></tr>"
+body=$body"<tr bgcolor=#eeeeee><td>Info: </td><td><font color=#0000CC>$5</font></td></tr>"
+if [ $1 = 'ACKNOWLEDGEMENT' ]
+then
+body=$body"<tr bgcolor=#eeeeee><td>Comment: </td><td><font color=#0000CC>$9</font></td></tr>"
+fi
+body=$body"</table></body></html>"
+/usr/local/bin/sendEmail -f nagios@precisionit.co.in -t "$7" -s 172.16.2.111 -u "$subject" -m "$body" -xu nagios@precisionit.co.in -xp xxxxxxxx -o message-content-type=html tls=no
+
